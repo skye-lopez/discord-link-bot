@@ -50,10 +50,10 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
         return
     }
 
+    // Confirm the latest message is infact a URL
     url, messageIsUrl := confirmURL(message.Content)
     if messageIsUrl {
-        msg := "you gave me a valid link \n" + url 
-        discord.ChannelMessageSend(message.ChannelID, msg)
+        storeUserLink(message.GuildID, message.ChannelID, message.Author.ID, url)
     }
 }
 
@@ -70,4 +70,9 @@ func confirmURL(provided string) (string, bool) {
     }
 
     return provided, true
+}
+
+func storeUserLink(guildID string, channelID string, userID string, url string) {
+    // TODO: store it in a smart way
+    fmt.Println(guildID, channelID, userID, url)
 }
