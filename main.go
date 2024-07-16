@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+    nu "net/url"
+    "net"
+    "strings"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
+
 )
 
 func main() {
@@ -46,5 +50,24 @@ func newMessage(discord *discordgo.Session, message *discordgo.MessageCreate) {
         return
     }
 
-    discord.ChannelMessageSend(message.ChannelID, "yo")
+    url, messageIsUrl := confirmURL(message.Content)
+    if messageIsUrl {
+        msg := "you gave me a valid link \n" + url 
+        discord.ChannelMessageSend(message.ChannelID, msg)
+    }
+}
+
+func confirmURL(provided string) (string, bool) {
+    u, err := nu.ParseRequestURI(provided)
+    if err != nil {
+        return "", false
+    }
+
+    adress := net.ParseIP(u.Host)
+    if adress == nil {
+        valid := strings.Contains(u.Host, ".")
+        return provided, valid
+    }
+
+    return provided, true
 }
