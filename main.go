@@ -2,16 +2,21 @@ package main
 
 import (
 	"fmt"
+	"net"
+	nu "net/url"
 	"os"
 	"os/signal"
-    nu "net/url"
-    "net"
-    "strings"
+	"strings"
+	"database/sql"
 
+	_ "github.com/lib/pq"
+	migrator "github.com/skye-lopez/go-pq-migrator"
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
-
+	"github.com/skye-lopez/go-query"
 )
+
+var gq goquery.GoQuery
 
 func main() {
     err := godotenv.Load()
@@ -21,6 +26,7 @@ func main() {
     }
 
     botToken := os.Getenv("BOT_TOKEN")
+    gq = GetGoQuery() 
     RunBot(botToken)
 }
 
@@ -72,7 +78,39 @@ func confirmURL(provided string) (string, bool) {
     return provided, true
 }
 
-func storeUserLink(guildID string, channelID string, userID string, url string) {
+func storeUserLink(guildID string, channelID string, userID string, url string)  {
     // TODO: store it in a smart way
-    fmt.Println(guildID, channelID, userID, url)
+    linkID := guildID + channelID + userID
+    //linkID, userID, channelID, guildID, link 
+    _, err := gq.QueryString("SELECT insert_link($1, $2, $3, $4, $5)", linkID, userID, channelID, guildID, url)
+    if err != nil {
+        fmt.Println(err)
+    }
+}
+
+func GetDB() *sql.DB {
+    // TODO: This is just a testing db, eventually will need a real one.
+    connStr := "postgres://me:me@localhost/tft_tracker"
+    db, connErr := sql.Open("postgres", connStr)
+    if connErr != nil {
+        fmt.Println("Error opening PG", connErr)
+    }
+    return db
+}
+
+func GetGoQuery() goquery.GoQuery {
+    db := GetDB()
+    gq := goquery.NewGoQuery(db)
+    gq.AddQueriesToMap("q")
+    return gq
+}
+
+func GetMigrator() migrator.Migrator {
+    db := GetDB()
+    m, err := migrator.NewMigrator(db)
+    if err != nil {
+        //TODO: Err
+    }
+    m.AddQueriesToMap("migrations")
+    return m
 }
